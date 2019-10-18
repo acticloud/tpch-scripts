@@ -8,6 +8,7 @@ import re
 import sys
 import subprocess
 import time
+import requests
 
 class Issue(Exception):
     def __init__(self, msg):
@@ -50,6 +51,19 @@ def run(db, queryfile):
         raise Issue("Query %s failed: %r" % (queryfile, snippet))
     return float(m.group(1))
 
+# also give a performance alert to the ACTiManager performance agent
+def set_alert(perfagent_url, alert):
+    try:
+        resp = requests.put(perfagent_url, data={'status':alert})
+        # check for exceptions
+        resp.raise_for_status()
+    except Exception as err:
+        print('ERROR: failed to set performance alert! ===> ', err)
+    else: # sanity check
+        resp = requests.get(perfagent_url)
+        if resp.json()['status'] != str(alert):
+            print('ERROR: failed to set performance alert! Status got ===> ', resp.content)
+
 def main(args):
     config = args.name or args.db
 
@@ -91,6 +105,7 @@ def main(args):
     deadline = time.time() + (args.duration or float("inf"))
     patience = args.patience or 0
     threshold = args.threshold or 0.25
+    perfagent_url = args.perfagent or 'http://127.0.0.1:5000/performancealert/1'
     wait = patience
     alert = 0
     while not done:
@@ -105,11 +120,13 @@ def main(args):
                 wait -= 1
                 if wait == 0:
                     alert = 1
+                    set_alert(perfagent_url, alert)
             else:
                 if devpercnt < threshold and alert == 1:
                     wait += 1
                     if wait == patience:
                         alert = 0
+                        set_alert(perfagent_url, alert)
             write("%s,%d,%s,%.2f,%.2f,%.2f%%,%d", qq(config), seq, qq(name), qtime, dev, devpercnt*100, alert)
 
         # we always finish executing a full query set
@@ -137,6 +154,8 @@ parser.add_argument('--patience', '-p', type=int,
                     help='Wait for how many degraded queries before changing the performance status, 0: immediately.')
 parser.add_argument('--threshold', '-t', type=float,
                     help='How much slower (in percentage) compared to its baseline performance should we regard a query\'s performance to have degradated, default: 0.25.')
+parser.add_argument('--perfagent', '-a',
+                    help='URL of the performance agent, default: \'http://127.0.0.1:5000/performancealert/1\'')
 
 if __name__ == "__main__":
     try:

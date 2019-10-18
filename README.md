@@ -278,6 +278,12 @@ If the performance status is `degradation` and the number of performance
  normalities has reached the patience level, then the performance status will
  be changed into `normality`.
 
+For the integration with the ACTiManager, when the performance status changes,
+ this script will additionally set/reset a performance alert by calling the
+ REST API of the performance agent of the ACTiManager.
+Note that this requires the [`requests`
+ library](https://realpython.com/python-requests/) to work.
+
 This script outputs the following information about the query executions:
 
 1. db name
@@ -287,6 +293,8 @@ This script outputs the following information about the query executions:
 1. deviation of this exec. time from its base exec. time
 1. percentage of the deviation of compared to its base exec. time
 1. performance status: 0 - normality, 1 - degradation
+
+Note that if the script failed to (re)set the performance alert, it will print the error message on a separate line preceding the execution information of this query.
 
 **Example usage:**
 
@@ -305,13 +313,14 @@ Second, start the just created database (this command can be copy-pasted from
 
 Finally, start the performance monitoring:
 
-    ./perf_monitor.py -i 10 -p 5 -d 30 -t 0.5 SF-1
+    ./perf_monitor.py -i 10 -p 5 -d 30 -t 0.5  -a 'http://127.0.0.1:5000/performancealert/1' SF-1
 
 where the options mean:
 * `-i 10`: execute the queries 10 times to obtain the baseline performance
 *  `-p 5`: collect 5 performance degradations before printing a warning
 * `-d 30`: run the performance monitoring for 30 seconds (excl. the initiation time)
 * `-t 0.5`: regard execution time increases of larger than 50% as performance degradations
+* `-a 'http://127.0.0.1:5000/performancealert/1'`: URL of the performance agent
 * `SF-1`: name of the database
 
 Note that `perf_monitor.py` assumes that a MonetDB server (such as the one
