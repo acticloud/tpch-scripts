@@ -1,3 +1,6 @@
+# Acknowledgments
+This software has been partially funded by the European Unions Horizon 2020 research and innovation programme under Grant Agreement no. 732366 (ACTiCLOUD).
+
 # TPC-H scripts for MonetDB
 
 This is a set of programs that can be used to generate TPC-H test data
